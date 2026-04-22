@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.util.Date;
+
 @Entity
 @Table(name = "auth_users")
 @Data
@@ -24,6 +27,11 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    private String firstName;
+    private String lastName;
+    private BigDecimal phoneNumber;
+    private Date dateOfBirth;
+
     @Enumerated(EnumType.STRING)
     private Role role;
 
@@ -31,6 +39,7 @@ public class User {
         USER,
         ADMIN
     }
+
 }
 
 

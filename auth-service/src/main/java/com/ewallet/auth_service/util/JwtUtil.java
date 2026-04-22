@@ -19,11 +19,10 @@ public class JwtUtil {
     @SuppressWarnings("unused")
     private long expirationMs;
 
-    public String generateToken(String email, String role) {
-        // Implement JWT token generation logic using the secret and expiration
-        // You can use libraries like io.jsonwebtoken.Jwts for this
+    public String generateToken(Long id, String email, String role) {
         return Jwts.builder()
-                .subject(email)
+                .subject(String.valueOf(id))
+                .claim("email", email)
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))

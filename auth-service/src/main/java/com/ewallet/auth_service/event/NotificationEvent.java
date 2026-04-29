@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class WalletEvent  {
-    private Long userId;
-    private String email;
+public class NotificationEvent {
+    public String email;
+    public String fullName;
 }

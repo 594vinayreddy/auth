@@ -16,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.Date;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,7 +46,7 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(user.getId(),user.getEmail(), user.getRole().name());
 
-        UserEvent event = new UserEvent(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getPhoneNumber(), user.getDateOfBirth());
+        UserEvent event = new UserEvent(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getPhoneNumber(), user.getDateOfBirth());
         WalletEvent walletEvent = new WalletEvent(user.getId(), user.getEmail());
         NotificationEvent notificationEvent = new NotificationEvent(user.getEmail(), user.getFirstName()+" "+user.getLastName());
 

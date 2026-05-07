@@ -1,6 +1,7 @@
 package com.ewallet.auth_service.config;
 
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
@@ -13,22 +14,24 @@ public class RabbitMQConfig {
 
     public static final String EXCHANGE = "ewallet.exchange";
 
-    // Queues
-    public static final String USER_QUEUE   = "user.registered.queue";
-    public static final String WALLET_QUEUE = "wallet.registered.queue";
-    public static final String NOTIFICATION_QUEUE = "notification.registered.queue";
-    public static final String USER_TO_AUTH_QUEUE = "user_to_auth.registered.queue";
+    // Queues auth-service owns / declares
+    public static final String USER_QUEUE             = "user.registered.queue";
+    public static final String WALLET_QUEUE           = "wallet.registered.queue";
+    public static final String NOTIFICATION_QUEUE     = "notification.registered.queue";
+    public static final String USER_TO_AUTH_QUEUE     = "user_to_auth.registered.queue";
 
-    // Routing Keys
-    public static final String USER_ROUTING_KEY   = "user.registered";
-    public static final String WALLET_ROUTING_KEY = "wallet.registered";
-    public static final String NOTIFICATION_ROUTING_KEY = "notification.registered";
-    public static final String USER_TO_AUTH_ROUTING_KEY = "user_to_auth.registered";
+    // Routing keys
+    public static final String USER_ROUTING_KEY           = "user.registered";
+    public static final String WALLET_ROUTING_KEY         = "wallet.registered";
+    public static final String NOTIFICATION_ROUTING_KEY   = "notification.registered";
+    public static final String USER_TO_AUTH_ROUTING_KEY   = "user_to_auth.registered";
 
     @Bean
     public DirectExchange ewalletExchange() {
         return new DirectExchange(EXCHANGE);
     }
+
+    // --- Queues ---
 
     @Bean
     public Queue userQueue() {
@@ -36,7 +39,7 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue walletQueue() {
+    public Queue userToWalletQueue() {
         return QueueBuilder.durable(WALLET_QUEUE).build();
     }
 
@@ -45,11 +48,15 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(NOTIFICATION_QUEUE).build();
     }
 
+    // Auth-service consumes from this queue (account deletion events from user-service)
     @Bean
     public Queue userToAuthQueue() {
         return QueueBuilder.durable(USER_TO_AUTH_QUEUE).build();
     }
 
+    // --- Bindings ---
+
+    // Auth publishes user registration → user-service
     @Bean
     public Binding userBinding(Queue userQueue, DirectExchange ewalletExchange) {
         return BindingBuilder
@@ -58,14 +65,16 @@ public class RabbitMQConfig {
                 .with(USER_ROUTING_KEY);
     }
 
+    // Auth publishes user registration → wallet-service
     @Bean
-    public Binding walletBinding(Queue walletQueue, DirectExchange ewalletExchange) {
+    public Binding userToWalletBinding(Queue userToWalletQueue, DirectExchange ewalletExchange) {
         return BindingBuilder
-                .bind(walletQueue)
+                .bind(userToWalletQueue)
                 .to(ewalletExchange)
                 .with(WALLET_ROUTING_KEY);
     }
 
+    // Auth publishes user registration → notification-service
     @Bean
     public Binding notificationBinding(Queue notificationQueue, DirectExchange ewalletExchange) {
         return BindingBuilder
@@ -74,6 +83,7 @@ public class RabbitMQConfig {
                 .with(NOTIFICATION_ROUTING_KEY);
     }
 
+    // User-service publishes account deletion → auth-service consumes
     @Bean
     public Binding userToAuthBinding(Queue userToAuthQueue, DirectExchange ewalletExchange) {
         return BindingBuilder
@@ -81,6 +91,8 @@ public class RabbitMQConfig {
                 .to(ewalletExchange)
                 .with(USER_TO_AUTH_ROUTING_KEY);
     }
+
+    // --- Messaging Infrastructure ---
 
     @Bean
     public MessageConverter jsonMessageConverter() {
@@ -92,5 +104,15 @@ public class RabbitMQConfig {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(jsonMessageConverter());
         return rabbitTemplate;
+    }
+
+    // Needed to consume from user_to_auth.registered.queue
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(jsonMessageConverter());
+        return factory;
     }
 }

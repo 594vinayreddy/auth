@@ -16,9 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.util.Date;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -42,13 +39,13 @@ public class AuthService {
                 .dateOfBirth(request.getDateOfBirth())
                 .role(User.Role.USER)
                 .build();
-        userRepository.save(user);
+        User savedUser=userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user.getId(),user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(savedUser.getId(),savedUser.getEmail(), savedUser.getRole().name());
 
-        UserEvent event = new UserEvent(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getPhoneNumber(), user.getDateOfBirth());
-        WalletEvent walletEvent = new WalletEvent(user.getId(), user.getEmail());
-        NotificationEvent notificationEvent = new NotificationEvent(user.getEmail(), user.getFirstName()+" "+user.getLastName());
+        UserEvent event = new UserEvent(savedUser.getId(), savedUser.getFirstName(), savedUser.getLastName(), savedUser.getEmail(), savedUser.getPhoneNumber(), savedUser.getDateOfBirth());
+        WalletEvent walletEvent = new WalletEvent(savedUser.getId(), savedUser.getEmail());
+        NotificationEvent notificationEvent = new NotificationEvent(savedUser.getEmail(), savedUser.getFirstName()+" "+savedUser.getLastName());
 
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.EXCHANGE,
@@ -69,7 +66,7 @@ public class AuthService {
                 notificationEvent);
         log.info("Published to notification service for email: {}", notificationEvent.getEmail());
 
-        return new AuthResponse(token, user.getEmail(), user.getRole().name());
+        return new AuthResponse(token, savedUser.getEmail(), savedUser.getRole().name());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -80,7 +77,7 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token = jwtUtil.generateToken(user.getId(),user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
 
         return new AuthResponse(token, user.getEmail(), user.getRole().name());
     }
